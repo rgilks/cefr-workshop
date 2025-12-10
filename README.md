@@ -1,4 +1,4 @@
-# CEFR Scoring with DeBERTa-v3: A Workshop for Programmers
+# CEFR Scoring with DeBERTa-v3
 
 **Prerequisites**: Python basics, command line familiarity  
 **Target Audience**: Software engineers new to ML
@@ -55,7 +55,6 @@ uv run python model.py
 
 #### 3. Prepare the Training Data
 
-**Option A: Using the W&I corpus (recommended)**
 ```bash
 # Once you download and unzip the corpus from Cambridge:
 # https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024
