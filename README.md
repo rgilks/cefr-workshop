@@ -517,3 +517,19 @@ curl -X POST https://YOUR-URL/score -H "Content-Type: application/json" \
 - [CEFR Overview](https://www.coe.int/en/web/common-european-framework-reference-languages) - Official Council of Europe
 - [CEFR Level Descriptors](https://www.cambridgeenglish.org/exams-and-tests/cefr/) - Cambridge English
 
+---
+
+## ⚠️ Known Limitations & Improvements
+
+### The C1/C2 Problem
+
+The model tends to underpredict C1 and C2 levels because the W&I corpus has very few examples at these levels (~35 essays combined vs ~200 at B2). This is a common data imbalance issue.
+
+### Ways to Improve the Model
+
+1. **Data augmentation**: Generate synthetic C1/C2 essays using GPT-4, or paraphrase existing ones
+2. **Class weighting**: Weight the loss function to penalize C1/C2 errors more heavily
+3. **Ordinal regression**: Use CORN or other ordinal loss functions that respect the A1→C2 ordering
+4. **Larger model**: Try `microsoft/deberta-v3-large` (304M params vs 86M)
+5. **Ensemble**: Train 3-5 models with different seeds and average predictions
+6. **Additional data**: Combine with other CEFR-labeled corpora (e.g., EFCAMDAT, ASAP)
