@@ -458,19 +458,30 @@ This gives you a persistent URL like `https://your-username--cefr-api-cefrservic
 
 ### Testing the API
 
-```bash
-# Score an essay
-curl -X POST \
-  https://your-app.modal.run/score \
-  -H "Content-Type: application/json" \
-  -d '{"text": "I think technology is very important in our life today. Many people use smartphones and computers every day. In my opinion, technology helps us communicate with friends and family."}'
+Try these sample essays at different CEFR levels:
 
-# Response:
-{
-  "score": 3.42,
-  "cefr_level": "B1",
-  "confidence": "medium"
-}
+**A1/A2 Level** (simple sentences, basic vocabulary):
+```bash
+curl -X POST https://YOUR-URL/score \
+  -H "Content-Type: application/json" \
+  -d '{"text": "I like dog. Dog is good. I have dog. My dog name is Max."}'
+# Expected: ~A2 (score ~1.6)
+```
+
+**B1 Level** (clear, connected sentences):
+```bash
+curl -X POST https://YOUR-URL/score \
+  -H "Content-Type: application/json" \
+  -d '{"text": "I like to go shopping with my friends. We go to the mall every weekend. I usually buy clothes and sometimes we eat pizza. It is very fun."}'
+# Expected: ~B1 (score ~2.5)
+```
+
+**B2 Level** (clear, detailed, well-structured):
+```bash
+curl -X POST https://YOUR-URL/score \
+  -H "Content-Type: application/json" \
+  -d '{"text": "The question of whether social media has had a positive or negative impact on society is a complex one. On the one hand, platforms like Facebook have enabled unprecedented levels of global connectivity. On the other hand, there is growing evidence that excessive social media use may contribute to mental health issues."}'
+# Expected: ~B2 (score ~3.8)
 ```
 
 ---
