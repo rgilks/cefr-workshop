@@ -310,475 +310,52 @@ modal run hello_modal.py
 
 ---
 
-## Part 5: Building the Training Pipeline
 
-> 📁 See the [Project Structure](#-project-structure) at the top of this document for file organization.
+## Part 5: Understanding the Code
 
-> 💡 **Note**: The code snippets below are **simplified for teaching**. The actual project files (`prepare_data.py`, `model.py`, `train.py`) include additional features like better error handling, statistics output, and support for the 2024 corpus format. Feel free to read both!
+The project contains four main Python files. Here's what each does:
 
-### Step 1: Data Preparation Script
+### `prepare_data.py` - Data Preparation
 
-The actual `prepare_data.py` handles the 2024 corpus format. Here's a simplified version showing the core logic:
+Converts the W&I corpus TSV file into training format (JSONL):
+- Reads essays from the corpus
+- Uses the official train/dev/test splits
+- Converts CEFR levels (A1-C2) to numbers (1.0-6.0)
 
+**Key concept**: CEFR levels are converted to numbers for regression:
 ```python
-"""
-Convert W&I corpus to JSONL format for training.
-"""
-import json
-from pathlib import Path
-
-# CEFR level to numeric score
-CEFR_TO_SCORE = {
-    "A1": 1.0, "A2": 2.0, "B1": 3.0,
-    "B2": 4.0, "C1": 5.0, "C2": 6.0,
-}
-
-def parse_wi_corpus(input_dir: Path) -> list[dict]:
-    """Parse the W&I corpus files."""
-    essays = []
-    
-    # The corpus has separate files for each level
-    for tsv_file in input_dir.glob("*.tsv"):
-        with open(tsv_file) as f:
-            for line in f:
-                parts = line.strip().split("\t")
-                if len(parts) >= 3:
-                    essay_id, text, cefr = parts[0], parts[1], parts[2]
-                    if cefr in CEFR_TO_SCORE:
-                        essays.append({
-                            "id": essay_id,
-                            "text": text,
-                            "cefr": cefr,
-                            "score": CEFR_TO_SCORE[cefr],
-                        })
-    
-    return essays
-
-def save_jsonl(data: list[dict], path: Path):
-    """Save as JSONL (one JSON object per line)."""
-    with open(path, "w") as f:
-        for item in data:
-            # Format for training: input/target pairs
-            f.write(json.dumps({
-                "input": item["text"],
-                "target": item["score"],
-            }) + "\n")
-
-if __name__ == "__main__":
-    import argparse
-    
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input-dir", required=True)
-    parser.add_argument("--output-dir", default="data")
-    args = parser.parse_args()
-    
-    essays = parse_wi_corpus(Path(args.input_dir))
-    print(f"Loaded {len(essays)} essays")
-    
-    # Split: 80% train, 10% dev, 10% test
-    # (In practice, use the official splits from the corpus)
-    n = len(essays)
-    train = essays[:int(0.8 * n)]
-    dev = essays[int(0.8 * n):int(0.9 * n)]
-    test = essays[int(0.9 * n):]
-    
-    out = Path(args.output_dir)
-    out.mkdir(exist_ok=True)
-    
-    save_jsonl(train, out / "train.jsonl")
-    save_jsonl(dev, out / "dev.jsonl")
-    save_jsonl(test, out / "test.jsonl")
-    
-    print(f"Saved: {len(train)} train, {len(dev)} dev, {len(test)} test")
+CEFR_TO_SCORE = {"A1": 1.0, "A2": 2.0, "B1": 3.0, "B2": 4.0, "C1": 5.0, "C2": 6.0}
 ```
 
-### Step 2: Model Architecture
+### `model.py` - Model Architecture
 
-Create `model.py`:
+Defines the neural network:
+- Loads pre-trained DeBERTa from Hugging Face
+- Adds a "regression head" (small neural network) on top
+- Outputs a score between 1.0-6.0
 
+Run it to verify your setup: `uv run python model.py`
+
+### `train.py` - Training Script
+
+Runs on Modal with a GPU:
+- Loads essays and tokenizes them
+- Trains the model for 10 epochs
+- Saves the best model based on validation MAE
+
+**Modal decorators** make this run in the cloud:
 ```python
-"""
-CEFR scoring model based on DeBERTa-v3.
-
-Architecture:
-    DeBERTa-v3-base Encoder (86M params)
-        ↓
-    Mean Pooling (average all token representations)
-        ↓
-    Regression Head (Linear → ReLU → Linear → 1)
-        ↓
-    CEFR Score (1.0 - 6.0)
-"""
-import torch
-import torch.nn as nn
-from transformers import DebertaV2Model, DebertaV2Config
-
-
-class CEFRModel(nn.Module):
-    """
-    Fine-tuned DeBERTa for CEFR score prediction.
-    
-    Why this architecture?
-    - DeBERTa-v3-base: Good balance of quality vs speed
-    - Mean pooling: More robust than [CLS] token alone
-    - Simple regression head: Prevents overfitting on small datasets
-    """
-    
-    def __init__(
-        self,
-        model_name: str = "microsoft/deberta-v3-base",
-        dropout: float = 0.1,
-    ):
-        super().__init__()
-        
-        # Load pre-trained encoder
-        self.encoder = DebertaV2Model.from_pretrained(model_name)
-        hidden_size = self.encoder.config.hidden_size  # 768 for base
-        
-        # Regression head
-        self.regressor = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, 256),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(256, 1),
-        )
-    
-    def forward(
-        self,
-        input_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
-    ) -> torch.Tensor:
-        """
-        Forward pass.
-        
-        Args:
-            input_ids: Token IDs [batch_size, seq_len]
-            attention_mask: 1 for real tokens, 0 for padding [batch_size, seq_len]
-        
-        Returns:
-            Predicted scores [batch_size]
-        """
-        # Get encoder outputs
-        outputs = self.encoder(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-        )
-        hidden_states = outputs.last_hidden_state  # [batch, seq, hidden]
-        
-        # Mean pooling: average non-padding tokens
-        mask_expanded = attention_mask.unsqueeze(-1).float()  # [batch, seq, 1]
-        sum_hidden = (hidden_states * mask_expanded).sum(dim=1)  # [batch, hidden]
-        count = mask_expanded.sum(dim=1).clamp(min=1e-9)  # [batch, 1]
-        pooled = sum_hidden / count  # [batch, hidden]
-        
-        # Predict score
-        score = self.regressor(pooled).squeeze(-1)  # [batch]
-        
-        return score
-
-
-def score_to_cefr(score: float) -> str:
-    """Convert numeric score to CEFR level."""
-    if score < 1.5:
-        return "A1"
-    elif score < 2.5:
-        return "A2"
-    elif score < 3.5:
-        return "B1"
-    elif score < 4.5:
-        return "B2"
-    elif score < 5.5:
-        return "C1"
-    else:
-        return "C2"
+@app.function(gpu="A10G")  # Runs on an A10G GPU
+def train():
+    # Training code here
 ```
 
-### Step 3: Training Script
+### `serve.py` - API Deployment
 
-Create `train.py`:
-
-```python
-"""
-Train CEFR scoring model on Modal.
-
-Usage:
-    modal run train.py              # Full training
-    modal run train.py --test-run   # Quick test (5 min)
-"""
-import json
-import os
-from pathlib import Path
-
-import modal
-
-# ============================================================
-# Modal Configuration
-# ============================================================
-
-app = modal.App("cefr-workshop")
-
-# Define the container image with all dependencies
-image = (
-    modal.Image.debian_slim(python_version="3.11")
-    .pip_install(
-        "torch>=2.1.0",
-        "transformers>=4.40.0",
-        "datasets>=2.14.0",
-        "scikit-learn>=1.3.0",
-        "sentencepiece>=0.1.99",  # Required for DeBERTa tokenizer
-    )
-    # Add our code
-    .add_local_file("model.py", "/app/model.py")
-    .add_local_dir("data", "/app/data")
-)
-
-# Persistent storage for trained models
-volume = modal.Volume.from_name("cefr-models", create_if_missing=True)
-
-
-# ============================================================
-# Training Function
-# ============================================================
-
-@app.function(
-    image=image,
-    gpu="A10G",  # NVIDIA A10G: 24GB VRAM, good price/performance
-    timeout=3600,  # 1 hour max
-    volumes={"/vol": volume},
-)
-def train(
-    test_run: bool = False,
-    learning_rate: float = 2e-5,
-    batch_size: int = 16,
-    num_epochs: int = 10,
-    max_length: int = 512,
-):
-    """
-    Train the CEFR model.
-    
-    Args:
-        test_run: If True, train for 1 epoch on small subset
-        learning_rate: AdamW learning rate (2e-5 is standard for fine-tuning)
-        batch_size: Samples per gradient update
-        num_epochs: Full passes through training data
-        max_length: Max tokens (512 captures most essays)
-    """
-    import torch
-    from torch.utils.data import DataLoader, Dataset
-    from transformers import AutoTokenizer, get_linear_schedule_with_warmup
-    from sklearn.metrics import mean_absolute_error
-    
-    # Import our model
-    import sys
-    sys.path.insert(0, "/app")
-    from model import CEFRModel, score_to_cefr
-    
-    print("=" * 60)
-    print("CEFR Model Training")
-    print("=" * 60)
-    print(f"Device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
-    print(f"Test run: {test_run}")
-    print(f"Learning rate: {learning_rate}")
-    print(f"Batch size: {batch_size}")
-    print(f"Epochs: {num_epochs if not test_run else 1}")
-    print("=" * 60)
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # --------------------------------------------------------
-    # Load Data
-    # --------------------------------------------------------
-    
-    def load_jsonl(path: str) -> list[dict]:
-        with open(path) as f:
-            return [json.loads(line) for line in f]
-    
-    train_data = load_jsonl("/app/data/train.jsonl")
-    dev_data = load_jsonl("/app/data/dev.jsonl")
-    
-    if test_run:
-        train_data = train_data[:100]
-        dev_data = dev_data[:50]
-    
-    print(f"Training samples: {len(train_data)}")
-    print(f"Validation samples: {len(dev_data)}")
-    
-    # --------------------------------------------------------
-    # Tokenization
-    # --------------------------------------------------------
-    
-    tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-v3-base")
-    
-    class CEFRDataset(Dataset):
-        def __init__(self, data: list[dict]):
-            self.data = data
-        
-        def __len__(self):
-            return len(self.data)
-        
-        def __getitem__(self, idx):
-            item = self.data[idx]
-            encoding = tokenizer(
-                item["input"],
-                truncation=True,
-                padding="max_length",
-                max_length=max_length,
-                return_tensors="pt",
-            )
-            return {
-                "input_ids": encoding["input_ids"].squeeze(0),
-                "attention_mask": encoding["attention_mask"].squeeze(0),
-                "labels": torch.tensor(item["target"], dtype=torch.float32),
-            }
-    
-    train_loader = DataLoader(
-        CEFRDataset(train_data),
-        batch_size=batch_size,
-        shuffle=True,
-    )
-    dev_loader = DataLoader(
-        CEFRDataset(dev_data),
-        batch_size=batch_size,
-    )
-    
-    # --------------------------------------------------------
-    # Model Setup
-    # --------------------------------------------------------
-    
-    model = CEFRModel().to(device)
-    
-    # Count parameters
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total parameters: {total_params:,}")
-    print(f"Trainable parameters: {trainable_params:,}")
-    
-    # Optimizer: AdamW with weight decay (regularization)
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=learning_rate,
-        weight_decay=0.01,
-    )
-    
-    # Learning rate scheduler: linear warmup then decay
-    num_training_steps = len(train_loader) * (1 if test_run else num_epochs)
-    num_warmup_steps = num_training_steps // 10
-    
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer,
-        num_warmup_steps=num_warmup_steps,
-        num_training_steps=num_training_steps,
-    )
-    
-    # Loss function: Mean Squared Error
-    loss_fn = torch.nn.MSELoss()
-    
-    # --------------------------------------------------------
-    # Training Loop
-    # --------------------------------------------------------
-    
-    best_dev_mae = float("inf")
-    epochs = 1 if test_run else num_epochs
-    
-    for epoch in range(epochs):
-        # --- Training ---
-        model.train()
-        train_loss = 0.0
-        
-        for batch_idx, batch in enumerate(train_loader):
-            # Move data to GPU
-            input_ids = batch["input_ids"].to(device)
-            attention_mask = batch["attention_mask"].to(device)
-            labels = batch["labels"].to(device)
-            
-            # Forward pass
-            predictions = model(input_ids, attention_mask)
-            loss = loss_fn(predictions, labels)
-            
-            # Backward pass
-            optimizer.zero_grad()
-            loss.backward()
-            
-            # Gradient clipping (prevents exploding gradients)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            
-            # Update weights
-            optimizer.step()
-            scheduler.step()
-            
-            train_loss += loss.item()
-            
-            if batch_idx % 20 == 0:
-                print(f"  Batch {batch_idx}/{len(train_loader)}, Loss: {loss.item():.4f}")
-        
-        avg_train_loss = train_loss / len(train_loader)
-        
-        # --- Validation ---
-        model.eval()
-        all_preds = []
-        all_labels = []
-        
-        with torch.no_grad():
-            for batch in dev_loader:
-                input_ids = batch["input_ids"].to(device)
-                attention_mask = batch["attention_mask"].to(device)
-                labels = batch["labels"]
-                
-                predictions = model(input_ids, attention_mask)
-                
-                all_preds.extend(predictions.cpu().tolist())
-                all_labels.extend(labels.tolist())
-        
-        dev_mae = mean_absolute_error(all_labels, all_preds)
-        
-        print(f"\nEpoch {epoch + 1}/{epochs}")
-        print(f"  Train Loss: {avg_train_loss:.4f}")
-        print(f"  Dev MAE: {dev_mae:.4f}")
-        
-        # Save best model
-        if dev_mae < best_dev_mae:
-            best_dev_mae = dev_mae
-            torch.save(model.state_dict(), "/vol/best_model.pt")
-            tokenizer.save_pretrained("/vol/tokenizer")
-            print(f"  ✅ New best model saved!")
-    
-    # --------------------------------------------------------
-    # Final Evaluation
-    # --------------------------------------------------------
-    
-    print("\n" + "=" * 60)
-    print("Training Complete!")
-    print(f"Best Dev MAE: {best_dev_mae:.4f}")
-    print("Model saved to /vol/best_model.pt")
-    print("=" * 60)
-    
-    # Commit volume to persist
-    volume.commit()
-    
-    return {"best_dev_mae": best_dev_mae}
-
-
-# ============================================================
-# Entry Point
-# ============================================================
-
-@app.local_entrypoint()
-def main(test_run: bool = False):
-    """Run training."""
-    result = train.remote(test_run=test_run)
-    print(f"Result: {result}")
-
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--test-run", action="store_true")
-    args = parser.parse_args()
-    
-    with app.run():
-        train.remote(test_run=args.test_run)
-```
+Deploys the trained model as a REST API:
+- Loads the model from Modal volume
+- Exposes `/score` endpoint for predictions
+- Returns CEFR level and confidence
 
 ---
 
@@ -831,132 +408,18 @@ MAE = average(errors) = 0.167
 
 An MAE of 0.4 means predictions are within half a CEFR level on average.
 
-### Evaluation Script
+### Running Evaluation
 
-Create `evaluate.py`:
+After training, test your model on held-out data:
 
-```python
-"""
-Evaluate trained model on test set.
-
-Usage:
-    modal run evaluate.py
-"""
-import json
-import modal
-from sklearn.metrics import mean_absolute_error, cohen_kappa_score
-import numpy as np
-
-app = modal.App("cefr-eval")
-
-image = (
-    modal.Image.debian_slim(python_version="3.11")
-    .pip_install(
-        "torch>=2.1.0",
-        "transformers>=4.40.0",
-        "scikit-learn>=1.3.0",
-        "sentencepiece>=0.1.99",
-    )
-    .add_local_file("model.py", "/app/model.py")
-    .add_local_dir("data", "/app/data")
-)
-
-volume = modal.Volume.from_name("cefr-models")
-
-
-@app.function(
-    image=image,
-    gpu="T4",  # Smaller GPU is fine for inference
-    volumes={"/vol": volume},
-)
-def evaluate():
-    """Evaluate model on held-out test set."""
-    import torch
-    from transformers import  AutoTokenizer
-    
-    import sys
-    sys.path.insert(0, "/app")
-    from model import CEFRModel, score_to_cefr
-    
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    # Load model
-    model = CEFRModel()
-    model.load_state_dict(torch.load("/vol/best_model.pt"))
-    model = model.to(device)
-    model.eval()
-    
-    tokenizer = AutoTokenizer.from_pretrained("/vol/tokenizer")
-    
-    # Load test data
-    with open("/app/data/test.jsonl") as f:
-        test_data = [json.loads(line) for line in f]
-    
-    print(f"Evaluating on {len(test_data)} test samples...")
-    
-    predictions = []
-    actuals = []
-    
-    with torch.no_grad():
-        for item in test_data:
-            encoding = tokenizer(
-                item["input"],
-                truncation=True,
-                padding="max_length",
-                max_length=512,
-                return_tensors="pt",
-            )
-            
-            input_ids = encoding["input_ids"].to(device)
-            attention_mask = encoding["attention_mask"].to(device)
-            
-            pred = model(input_ids, attention_mask).item()
-            predictions.append(pred)
-            actuals.append(item["target"])
-    
-    # Metrics
-    mae = mean_absolute_error(actuals, predictions)
-    
-    # Convert to CEFR levels for QWK
-    pred_cefr = [score_to_cefr(p) for p in predictions]
-    actual_cefr = [score_to_cefr(a) for a in actuals]
-    
-    # Map CEFR to integers for kappa
-    cefr_to_int = {"A1": 1, "A2": 2, "B1": 3, "B2": 4, "C1": 5, "C2": 6}
-    pred_int = [cefr_to_int[c] for c in pred_cefr]
-    actual_int = [cefr_to_int[c] for c in actual_cefr]
-    
-    qwk = cohen_kappa_score(actual_int, pred_int, weights="quadratic")
-    
-    # Accuracy metrics
-    exact_match = sum(p == a for p, a in zip(pred_cefr, actual_cefr)) / len(actuals)
-    adjacent = sum(
-        abs(cefr_to_int[p] - cefr_to_int[a]) <= 1 
-        for p, a in zip(pred_cefr, actual_cefr)
-    ) / len(actuals)
-    
-    print("\n" + "=" * 60)
-    print("EVALUATION RESULTS")
-    print("=" * 60)
-    print(f"MAE:               {mae:.3f}")
-    print(f"QWK:               {qwk:.3f}")
-    print(f"Exact Accuracy:    {exact_match:.1%}")
-    print(f"Adjacent Accuracy: {adjacent:.1%}")
-    print("=" * 60)
-    
-    return {
-        "mae": mae,
-        "qwk": qwk,
-        "exact_accuracy": exact_match,
-        "adjacent_accuracy": adjacent,
-    }
-
-
-@app.local_entrypoint()
-def main():
-    result = evaluate.remote()
-    print(f"Result: {result}")
+```bash
+modal run evaluate.py
 ```
+
+The `evaluate.py` script:
+- Loads your trained model from Modal volume
+- Runs predictions on all test essays
+- Reports MAE, QWK, and accuracy metrics
 
 ### Understanding QWK (Quadratic Weighted Kappa)
 
@@ -976,147 +439,22 @@ QWK measures agreement between predicted and actual CEFR levels:
 
 ## Part 7: Deployment & Inference
 
-### Creating an API
+### Deploying the API
 
 The `serve.py` file deploys your trained model as a REST API:
 
-```python
-"""
-Serve CEFR model as a FastAPI endpoint on Modal.
-
-Usage:
-    modal deploy serve.py
-    # Then: curl https://your-app.modal.run/score -X POST -d '{"text": "..."}'
-"""
-import modal
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-
-app = modal.App("cefr-api")
-
-image = (
-    modal.Image.debian_slim(python_version="3.11")
-    .pip_install(
-        "torch>=2.1.0",
-        "transformers>=4.40.0",
-        "fastapi>=0.104.0",
-        "sentencepiece>=0.1.99",
-    )
-    .add_local_file("model.py", "/app/model.py")
-)
-
-volume = modal.Volume.from_name("cefr-models")
-
-# FastAPI app
-web_app = FastAPI(title="CEFR Scoring API")
-
-
-class ScoreRequest(BaseModel):
-    text: str
-
-
-class ScoreResponse(BaseModel):
-    score: float
-    cefr_level: str
-    confidence: str
-
-
-@app.cls(
-    image=image,
-    gpu="T4",
-    volumes={"/vol": volume},
-    scaledown_window=60,  # Keep warm for 1 minute
-)
-class CEFRService:
-    """CEFR scoring service with model lifecycle management."""
-    
-    def __init__(self):
-        self.model = None
-        self.tokenizer = None
-    
-    @modal.enter()
-    def startup(self):
-        """Load model on container startup."""
-        import torch
-        from transformers import AutoTokenizer
-        import sys
-        sys.path.insert(0, "/app")
-        from model import CEFRModel
-        
-        print("Loading model...")
-        self.model = CEFRModel()
-        self.model.load_state_dict(torch.load("/vol/best_model.pt", map_location="cpu"))
-        self.model.eval()
-        
-        self.tokenizer = AutoTokenizer.from_pretrained("/vol/tokenizer")
-        print("Model loaded!")
-    
-    @modal.asgi_app()
-    def serve(self):
-        """Return the FastAPI app."""
-        
-        @web_app.get("/health")
-        def health():
-            return {"status": "healthy", "model_loaded": self.model is not None}
-        
-        @web_app.post("/score", response_model=ScoreResponse)
-        def score_essay(request: ScoreRequest):
-            """Score an essay and return CEFR level."""
-            import torch
-            import sys
-            sys.path.insert(0, "/app")
-            from model import score_to_cefr
-            
-            if self.model is None:
-                raise HTTPException(500, "Model not loaded")
-            
-            if len(request.text.strip()) < 10:
-                raise HTTPException(400, "Text too short (min 10 characters)")
-            
-            # Tokenize
-            encoding = self.tokenizer(
-                request.text,
-                truncation=True,
-                padding="max_length",
-                max_length=512,
-                return_tensors="pt",
-            )
-            
-            # Predict
-            with torch.no_grad():
-                score = self.model(
-                    encoding["input_ids"],
-                    encoding["attention_mask"],
-                ).item()
-            
-            # Clamp to valid range
-            score = max(1.0, min(6.0, score))
-            cefr = score_to_cefr(score)
-            
-            # Simple confidence based on distance to CEFR boundaries
-            boundaries = {1.5, 2.5, 3.5, 4.5, 5.5}
-            min_dist = min(abs(score - b) for b in boundaries)
-            confidence = "high" if min_dist > 0.3 else "medium" if min_dist > 0.15 else "low"
-            
-            return ScoreResponse(
-                score=round(score, 2),
-                cefr_level=cefr,
-                confidence=confidence,
-            )
-        
-        return web_app
-```
-
-### Deploying
-
 ```bash
-# Deploy (gets a persistent URL)
 modal deploy serve.py
-
-# Output:
-# ✓ Created CEFR-API
-# ✓ https://your-username--cefr-api-cefrservice-serve.modal.run
 ```
+
+This gives you a persistent URL like `https://your-username--cefr-api-cefrservice-serve.modal.run`
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Check if model is loaded |
+| `/score` | POST | Score an essay |
 
 ### Testing the API
 
