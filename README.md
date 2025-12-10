@@ -529,7 +529,7 @@ The model tends to underpredict C1 and C2 levels because the W&I corpus has very
 
 1. **Data augmentation**: Generate synthetic C1/C2 essays using GPT-4, or paraphrase existing ones
 2. **Class weighting**: Weight the loss function to penalize C1/C2 errors more heavily
-3. **Ordinal regression**: Use CORN or other ordinal loss functions that respect the A1→C2 ordering
-4. **Larger model**: Try `microsoft/deberta-v3-large` (304M params vs 86M)
+3. **[Ordinal regression](https://arxiv.org/abs/2111.08851)**: Use CORN or other ordinal loss functions that respect the A1→C2 ordering
+4. **[Larger model](https://huggingface.co/microsoft/deberta-v3-large)**: Try `microsoft/deberta-v3-large` (304M params vs 86M)
 5. **Ensemble**: Train 3-5 models with different seeds and average predictions
-6. **Additional data**: Combine with other CEFR-labeled corpora (e.g., EFCAMDAT, ASAP)
+6. **Additional data**: Combine with other CEFR-labeled corpora like [EFCAMDAT](https://philarion.mml.cam.ac.uk/) or [ASAP](https://www.kaggle.com/c/asap-aes)
