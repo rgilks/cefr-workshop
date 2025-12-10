@@ -1,6 +1,5 @@
 # CEFR Scoring with DeBERTa-v3: A Workshop for Programmers
 
-**Duration**: 3-4 hours  
 **Prerequisites**: Python basics, command line familiarity  
 **Target Audience**: Software engineers new to ML
 
@@ -84,7 +83,7 @@ modal run train.py --test-run
 modal run train.py
 ```
 
-You're all set! Continue to [Part 1](#part-1-understanding-the-problem-30-min) to learn what you're building, or skip ahead to [Part 6](#part-6-training--evaluation-45-min) if you just want to train.
+You're all set! Continue to [Part 1](#part-1-understanding-the-problem) to learn what you're building, or skip ahead to [Part 6](#part-6-training--evaluation) if you just want to train.
 
 ---
 
@@ -121,17 +120,17 @@ cefr-workshop/
 
 ## 📚 Table of Contents
 
-1. [Understanding the Problem](#part-1-understanding-the-problem-30-min)
-2. [The Dataset: Write & Improve Corpus](#part-2-the-dataset-30-min)
-3. [How DeBERTa Works (Conceptually)](#part-3-how-deberta-works-45-min)
-4. [Setting Up Modal](#part-4-setting-up-modal-15-min)
-5. [Building the Training Pipeline](#part-5-building-the-training-pipeline-60-min)
-6. [Training & Evaluation](#part-6-training--evaluation-45-min)
-7. [Deployment & Inference](#part-7-deployment--inference-30-min)
+1. [Understanding the Problem](#part-1-understanding-the-problem)
+2. [The Dataset: Write & Improve Corpus](#part-2-the-dataset)
+3. [How DeBERTa Works (Conceptually)](#part-3-how-deberta-works)
+4. [Setting Up Modal](#part-4-setting-up-modal)
+5. [Building the Training Pipeline](#part-5-building-the-training-pipeline)
+6. [Training & Evaluation](#part-6-training--evaluation)
+7. [Deployment & Inference](#part-7-deployment--inference)
 
 ---
 
-## Part 1: Understanding the Problem (30 min)
+## Part 1: Understanding the Problem
 
 ### What is CEFR?
 
@@ -161,7 +160,7 @@ This is a **regression problem**:
 
 ---
 
-## Part 2: The Dataset (30 min)
+## Part 2: The Dataset
 
 ### Write & Improve Corpus
 
@@ -214,7 +213,7 @@ CEFR_TO_SCORE = {
 
 ---
 
-## Part 3: How DeBERTa Works (45 min)
+## Part 3: How DeBERTa Works
 
 ### The Transformer Revolution
 
@@ -265,7 +264,7 @@ def attention(query, keys, values):
    - Only need ~3,000 examples!
 
 
-### Recommended Reading (15 min)
+### Recommended Reading
 
 Before continuing, skim:
 - [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/) - Visual guide
@@ -273,7 +272,7 @@ Before continuing, skim:
 
 ---
 
-## Part 4: Setting Up Modal (15 min)
+## Part 4: Setting Up Modal
 
 ### What is Modal?
 
@@ -335,7 +334,7 @@ modal run hello_modal.py
 
 ---
 
-## Part 5: Building the Training Pipeline (60 min)
+## Part 5: Building the Training Pipeline
 
 > 📁 See the [Project Structure](#-project-structure) at the top of this document for file organization.
 
@@ -807,7 +806,7 @@ if __name__ == "__main__":
 
 ---
 
-## Part 6: Training & Evaluation (45 min)
+## Part 6: Training & Evaluation
 
 ### Running Training
 
@@ -999,7 +998,7 @@ QWK measures agreement between predicted and actual CEFR levels:
 
 ---
 
-## Part 7: Deployment & Inference (30 min)
+## Part 7: Deployment & Inference
 
 ### Creating an API
 
@@ -1166,9 +1165,9 @@ curl -X POST \
 
 ### Essential Reading (Do These First)
 
-1. **[The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/)** - Visual guide to attention (30 min)
-2. **[The Illustrated BERT](https://jalammar.github.io/illustrated-bert/)** - How pre-training works (20 min)
-3. **[But what is a GPT?](https://www.youtube.com/watch?v=wjZofJX0v4M)** - 3Blue1Brown video (27 min)
+1. **[The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/)** - Visual guide to attention
+2. **[The Illustrated BERT](https://jalammar.github.io/illustrated-bert/)** - How pre-training works
+3. **[But what is a GPT?](https://www.youtube.com/watch?v=wjZofJX0v4M)** - 3Blue1Brown video
 
 ### Technical Documentation
 
@@ -1185,21 +1184,21 @@ curl -X POST \
 
 ## 🎯 Workshop Exercises
 
-### Exercise 1: Data Exploration (15 min)
+### Exercise 1: Data Exploration
 
 Write a script to:
 1. Load the training data
 2. Print the distribution of CEFR levels
 3. Find the shortest and longest essays
 
-### Exercise 2: Hyperparameter Tuning (30 min)
+### Exercise 2: Hyperparameter Tuning
 
 Try different configurations and compare results:
 - Learning rate: `1e-5`, `2e-5`, `5e-5`
 - Batch size: `8`, `16`, `32`
 - Epochs: `5`, `10`, `15`
 
-### Exercise 3: Error Analysis (20 min)
+### Exercise 3: Error Analysis
 
 After training:
 1. Find the 10 worst predictions (highest error)
