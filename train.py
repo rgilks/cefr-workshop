@@ -94,9 +94,8 @@ def train(
         if not Path(path).exists():
             raise FileNotFoundError(
                 f"\n❌ Data file not found: {path}\n\n"
-                "To fix this, run one of:\n"
-                "  1. uv run python generate_sample_data.py  (creates synthetic test data)\n"
-                "  2. uv run python prepare_data.py --input-dir /path/to/corpus/whole-corpus\n\n"
+                "To fix this, run:\n"
+                "  uv run python prepare_data.py --input-dir /path/to/corpus/whole-corpus\n\n"
                 "See README.md for details on obtaining the W&I corpus."
             )
         with open(path) as f:

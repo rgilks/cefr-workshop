@@ -30,8 +30,8 @@ brew install uv
 
 ### Get the Training Data
 
-**Get the Write & Improve corpus** - this is the real training data:
-1. Go to: https://www.cl.cam.ac.uk/research/nl/bea2019st/#data
+**Get the Write & Improve corpus** - this is the training data:
+1. Go to: https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024
 2. Fill out the request form (access is typically granted immediately)
 3. Download and unzip the corpus
 
@@ -59,7 +59,7 @@ uv run python model.py
 **Option A: Using the W&I corpus (recommended)**
 ```bash
 # Once you download and unzip the corpus from Cambridge:
-# https://www.cl.cam.ac.uk/research/nl/bea2019st/#data
+# https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024
 # 
 # The 2024 corpus extracts to a folder like: write-and-improve-corpus-2024-v2/
 # Point the script to the whole-corpus subdirectory:
@@ -68,15 +68,6 @@ uv run python prepare_data.py \
     --input-dir /path/to/write-and-improve-corpus-2024-v2/whole-corpus \
     --output-dir ./data
 ```
-
-**Option B: Using synthetic data (for setup testing only)**
-```bash
-# If you haven't received corpus access yet, you can verify
-# the pipeline works with synthetic essays:
-uv run python generate_sample_data.py
-```
-
-> ⚠️ The synthetic data is only for verifying your setup works. For meaningful model training, use the real W&I corpus.
 
 #### 4. Set Up Modal (Cloud GPUs)
 ```bash
@@ -120,8 +111,7 @@ cefr-workshop/
 ├── serve.py                  # API deployment
 ├── hello_modal.py            # Quick test for Modal setup
 ├── prepare_data.py           # Converts W&I corpus to training format
-├── generate_sample_data.py   # Creates synthetic test data
-└── data/                     # Training data (created by scripts above)
+└── data/                     # Training data (created by prepare_data.py)
     ├── train.jsonl
     ├── dev.jsonl
     └── test.jsonl
@@ -175,7 +165,7 @@ This is a **regression problem**:
 
 ### Write & Improve Corpus
 
-The [Write & Improve (W&I) corpus](https://www.cl.cam.ac.uk/research/nl/bea2019st/#data) is from Cambridge English:
+The [Write & Improve (W&I) corpus](https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024) is from Cambridge English:
 
 - **~2,500 essays** from real English learners (final versions with CEFR labels)
 - **Expert CEFR labels** by trained examiners
@@ -186,7 +176,7 @@ The [Write & Improve (W&I) corpus](https://www.cl.cam.ac.uk/research/nl/bea2019s
 
 ```bash
 # 1. Request access from Cambridge
-# https://www.cl.cam.ac.uk/research/nl/bea2019st/#data
+# https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024
 # Fill out the form - usually approved within 24 hours
 
 # 2. Once you receive the download link, unzip it.
@@ -1185,7 +1175,7 @@ curl -X POST \
 - [Hugging Face Transformers](https://huggingface.co/docs/transformers) - Library docs
 - [Modal Documentation](https://modal.com/docs/guide) - Cloud platform
 - [DeBERTa Paper](https://arxiv.org/abs/2006.03654) - Original research
-- [W&I Corpus](https://www.cl.cam.ac.uk/research/nl/bea2019st/) - Dataset source
+- [W&I Corpus](https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024) - Dataset source
 
 ### CEFR Background
 
