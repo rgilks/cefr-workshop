@@ -52,13 +52,21 @@ uv sync
 uv run python model.py
 ```
 
+**What this tests**: This verifies that the pre-trained DeBERTa model downloads and loads correctly. You'll see "Sample scores" with random numbers like `[0.31, 0.08]` - these are **meaningless** because the regression head is untrained. After training, scores will be valid CEFR values (1.0-6.0).
+
 #### 3. Prepare the Training Data
 
 **Option A: Using the W&I corpus (recommended)**
 ```bash
-# Once you receive the download link from Cambridge:
-unzip wi+locness.zip
-uv run python prepare_data.py --input-dir ./wi+locness --output-dir ./data
+# Once you download and unzip the corpus from Cambridge:
+# https://www.cl.cam.ac.uk/research/nl/bea2019st/#data
+# 
+# The 2024 corpus extracts to a folder like: write-and-improve-corpus-2024-v2/
+# Point the script to the whole-corpus subdirectory:
+
+uv run python prepare_data.py \
+    --input-dir /path/to/write-and-improve-corpus-2024-v2/whole-corpus \
+    --output-dir ./data
 ```
 
 **Option B: Using synthetic data (for setup testing only)**
@@ -158,7 +166,7 @@ This is a **regression problem**:
 
 The [Write & Improve (W&I) corpus](https://www.cl.cam.ac.uk/research/nl/bea2019st/#data) is from Cambridge English:
 
-- **~3,600 essays** from real English learners
+- **~2,500 essays** from real English learners (final versions with CEFR labels)
 - **Expert CEFR labels** by trained examiners
 - **Open access** for research
 - Pre-split into train/dev/test sets
@@ -170,19 +178,21 @@ The [Write & Improve (W&I) corpus](https://www.cl.cam.ac.uk/research/nl/bea2019s
 # https://www.cl.cam.ac.uk/research/nl/bea2019st/#data
 # Fill out the form - usually approved within 24 hours
 
-# 2. Once you receive the download link:
-unzip wi+locness.zip
+# 2. Once you receive the download link, unzip it.
+# The 2024 version extracts to: write-and-improve-corpus-2024-v2/
 ```
 
 ### Data Structure
 
-The corpus comes as TSV/M2 files:
+The 2024 corpus is a single TSV file (`whole-corpus/en-writeandimprove2024-corpus.tsv`) with columns:
 
-```
-essay_id    essay_text                              cefr_level
-A001        "I am student in london..."             A2
-B042        "The advantages of technology..."        B2
-```
+| Column | Description |
+|--------|-------------|
+| `text` | The essay text |
+| `automarker_cefr_level` | CEFR level from auto-marker |
+| `humannotator_cefr_level` | CEFR level from human (if available) |
+| `split` | train / dev / test |
+| `is_final_version` | TRUE for final drafts |
 
 ### CEFR to Numeric Mapping
 
@@ -199,7 +209,7 @@ CEFR_TO_SCORE = {
 }
 ```
 
-> ⚠️ **Note**: The W&I corpus primarily contains A2-C1 essays. Very few A1 or C2 examples exist.
+> ⚠️ **Note**: The W&I corpus primarily contains B1-B2 essays (~75%). Very few A1 or C2 examples exist.
 
 ---
 
@@ -328,9 +338,11 @@ modal run hello_modal.py
 
 > 📁 See the [Project Structure](#-project-structure) at the top of this document for file organization.
 
+> 💡 **Note**: The code snippets below are **simplified for teaching**. The actual project files (`prepare_data.py`, `model.py`, `train.py`) include additional features like better error handling, statistics output, and support for the 2024 corpus format. Feel free to read both!
+
 ### Step 1: Data Preparation Script
 
-Create `prepare_data.py`:
+The actual `prepare_data.py` handles the 2024 corpus format. Here's a simplified version showing the core logic:
 
 ```python
 """

@@ -37,6 +37,9 @@ class CEFRModel(nn.Module):
         hidden_size = self.encoder.config.hidden_size  # 768 for base
         
         # Regression head
+        # NOTE: This is randomly initialized! It will output meaningless scores
+        # until you train the model with train.py. After training, it learns to
+        # map DeBERTa's language understanding to CEFR scores (1.0-6.0).
         self.regressor = nn.Sequential(
             nn.Dropout(dropout),
             nn.Linear(hidden_size, 256),
@@ -96,8 +99,11 @@ def score_to_cefr(score: float) -> str:
 
 
 if __name__ == "__main__":
-    # Quick test
+    # Quick test to verify the model architecture loads correctly.
+    # NOTE: The scores produced here are RANDOM because the regression head
+    # is untrained. Valid CEFR scores (1.0-6.0) only appear after training.
     print("Testing CEFRModel...")
+    print("(Note: Scores will be random until you train the model)\n")
     model = CEFRModel()
     
     # Count parameters

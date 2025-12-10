@@ -15,5 +15,5 @@ dependencies = [
     "modal>=0.64.0",
 ]
 
-[tool.uv]
-dev-dependencies = []
+[dependency-groups]
+dev = []
