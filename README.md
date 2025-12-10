@@ -215,60 +215,36 @@ CEFR_TO_SCORE = {
 
 ## Part 3: How DeBERTa Works
 
-### The Transformer Revolution
+### The Big Picture
 
-Before transformers (2017), NLP used recurrent networks that processed words sequentially. Transformers process all words in parallel using **attention**.
+**DeBERTa-v3** is a pre-trained language model from Microsoft. Think of it as a "brain" that already understands English - it was trained on billions of words from the internet.
+
+**What we do**: We add a small "scoring layer" on top and teach it to predict CEFR levels. This is called **fine-tuning** - we don't train the whole model from scratch, we just adjust it for our specific task.
 
 ```
-Traditional (sequential):    The → cat → sat → on → the → mat
-Transformer (parallel):      [The, cat, sat, on, the, mat] → processed together
+Pre-trained DeBERTa (understands English)
+         ↓
+    Our scoring layer (learns CEFR)
+         ↓
+    CEFR Score (1.0 - 6.0)
 ```
 
-### What is DeBERTa-v3?
+### Why This Works
 
-**DeBERTa** (Decoding-enhanced BERT with disentangled attention) is Microsoft's improved BERT:
+DeBERTa uses **attention** to understand context. For example, in "The bank by the river", it learns that "bank" relates to "river" (riverbank) rather than money.
 
-| Component | What It Does |
-|-----------|--------------|
-| **Tokenizer** | Splits text into ~30k subword pieces |
-| **Embeddings** | Converts tokens to 1024-dimensional vectors |
-| **Encoder** | 24 transformer layers that build meaning |
-| **Pooler** | Summarizes the sequence into one vector |
+This contextual understanding is exactly what's needed for CEFR scoring - the model can recognize patterns like:
+- Simple vs complex sentence structures
+- Basic vs advanced vocabulary
+- Grammatical accuracy
 
-### The Attention Mechanism
+### Want to Understand the Details?
 
-Attention answers: "Which words should influence which other words?"
+These resources explain the underlying concepts:
 
-```python
-# Simplified attention (pseudocode)
-def attention(query, keys, values):
-    # How relevant is each key to the query?
-    scores = dot_product(query, keys)  
-    weights = softmax(scores)  # Normalize to sum to 1
-    return weighted_sum(values, weights)
-```
-
-**Example**: For "The bank by the river", when processing "bank":
-- High attention to "river" → suggests "riverbank", not "financial bank"
-
-### Pre-training vs Fine-tuning
-
-1. **Pre-training** (done by Microsoft):
-   - Trained on billions of words
-   - Task: Predict masked words ("The [MASK] sat on the mat" → "cat")
-   - Result: General language understanding
-
-2. **Fine-tuning** (what we'll do):
-   - Start with pre-trained weights
-   - Train on our CEFR essays
-   - Only need ~3,000 examples!
-
-
-### Recommended Reading
-
-Before continuing, skim:
-- [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/) - Visual guide
-- [The Illustrated BERT](https://jalammar.github.io/illustrated-bert/) - Applies to DeBERTa
+- **[The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/)** - Visual guide to how attention works
+- **[The Illustrated BERT](https://jalammar.github.io/illustrated-bert/)** - How pre-training works (applies to DeBERTa)
+- **[DeBERTa Paper](https://arxiv.org/abs/2006.03654)** - The original research paper
 
 ---
 
