@@ -80,9 +80,20 @@ uv run python generate_sample_data.py
 
 #### 4. Set Up Modal (Cloud GPUs)
 ```bash
-modal setup        # Follow the prompts to authenticate
-uv run modal run hello_modal.py  # Verify Modal works
+modal setup              # Follow the prompts to authenticate
+modal run hello_modal.py # Verify Modal works (should print "Hello from modal!")
 ```
+
+#### 5. Run Training
+```bash
+# Quick test first (~5 min, verifies everything works)
+modal run train.py --test-run
+
+# Then full training (~30-60 min on A10G GPU)
+modal run train.py
+```
+
+You're all set! Continue to [Part 1](#part-1-understanding-the-problem-30-min) to learn what you're building, or skip ahead to [Part 6](#part-6-training--evaluation-45-min) if you just want to train.
 
 ---
 
