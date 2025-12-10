@@ -460,28 +460,39 @@ This gives you a persistent URL like `https://your-username--cefr-api-cefrservic
 
 Try these sample essays at different CEFR levels:
 
-**A1/A2 Level** (simple sentences, basic vocabulary):
+**A1 Level** (very simple, fragmented):
 ```bash
-curl -X POST https://YOUR-URL/score \
-  -H "Content-Type: application/json" \
-  -d '{"text": "I like dog. Dog is good. I have dog. My dog name is Max."}'
-# Expected: ~A2 (score ~1.6)
+curl -X POST https://YOUR-URL/score -H "Content-Type: application/json" \
+  -d '{"text": "I am student. I like school. My teacher is nice. I have friend. We play."}'
+# Expected: A1-A2 (score ~1.7)
 ```
 
-**B1 Level** (clear, connected sentences):
+**A2 Level** (simple sentences, basic connectors):
 ```bash
-curl -X POST https://YOUR-URL/score \
-  -H "Content-Type: application/json" \
+curl -X POST https://YOUR-URL/score -H "Content-Type: application/json" \
   -d '{"text": "I like to go shopping with my friends. We go to the mall every weekend. I usually buy clothes and sometimes we eat pizza. It is very fun."}'
-# Expected: ~B1 (score ~2.5)
+# Expected: A2-B1 (score ~2.5)
 ```
 
-**B2 Level** (clear, detailed, well-structured):
+**B1 Level** (connected, clear, personal topics):
 ```bash
-curl -X POST https://YOUR-URL/score \
-  -H "Content-Type: application/json" \
-  -d '{"text": "The question of whether social media has had a positive or negative impact on society is a complex one. On the one hand, platforms like Facebook have enabled unprecedented levels of global connectivity. On the other hand, there is growing evidence that excessive social media use may contribute to mental health issues."}'
-# Expected: ~B2 (score ~3.8)
+curl -X POST https://YOUR-URL/score -H "Content-Type: application/json" \
+  -d '{"text": "Last weekend I visited my grandmother. She lives in a small village near the mountains. We cooked dinner together and talked about old times. I really enjoyed spending time with her."}'
+# Expected: B1 (score ~2.8)
+```
+
+**B2 Level** (clear, detailed, can argue a point):
+```bash
+curl -X POST https://YOUR-URL/score -H "Content-Type: application/json" \
+  -d '{"text": "The question of whether social media has had a positive or negative impact on society is complex. On one hand, platforms like Facebook have enabled unprecedented global connectivity. On the other hand, there is growing evidence that excessive use may contribute to mental health issues, particularly among young people."}'
+# Expected: B2 (score ~3.8)
+```
+
+**C1/C2 Level** (sophisticated, nuanced):
+```bash
+curl -X POST https://YOUR-URL/score -H "Content-Type: application/json" \
+  -d '{"text": "The proliferation of misinformation in digital spaces represents a fundamental challenge to democratic discourse. While technological solutions such as fact-checking algorithms offer some mitigation, the underlying issue stems from deeper epistemological fragmentation in contemporary society."}'
+# Expected: B2-C1 (score ~3.8) - Note: Model tends to underpredict C1/C2 due to limited training examples at these levels
 ```
 
 ---
