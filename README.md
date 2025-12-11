@@ -126,6 +126,7 @@ cefr-workshop/
 5. [Building the Training Pipeline](#part-5-building-the-training-pipeline)
 6. [Training & Evaluation](#part-6-training--evaluation)
 7. [Deployment & Inference](#part-7-deployment--inference)
+8. [Additional Datasets](#-additional-datasets)
 
 ---
 
@@ -496,6 +497,23 @@ curl -X POST https://YOUR-URL/score -H "Content-Type: application/json" \
 
 ---
 
+## ⚠️ Known Limitations & Improvements
+
+### The C1/C2 Problem
+
+The model tends to underpredict C1 and C2 levels because the W&I corpus has very few examples at these levels (~35 essays combined vs ~200 at B2). This is a common data imbalance issue.
+
+### Ways to Improve the Model
+
+1. **Data augmentation**: Generate synthetic C1/C2 essays using GPT-4, or paraphrase existing ones
+2. **Class weighting**: Weight the loss function to penalize C1/C2 errors more heavily
+3. **[Ordinal regression](https://arxiv.org/abs/2111.08851)**: Use CORN or other ordinal loss functions that respect the A1→C2 ordering
+4. **[Larger model](https://huggingface.co/microsoft/deberta-v3-large)**: Try `microsoft/deberta-v3-large` (304M params vs 86M)
+5. **Ensemble**: Train 3-5 models with different seeds and average predictions
+6. **Additional data**: Combine with other corpora - see [Additional Datasets](#-additional-datasets) below
+
+---
+
 ## 📖 Reference Materials
 
 ### Essential Reading (Do These First)
@@ -518,17 +536,48 @@ curl -X POST https://YOUR-URL/score -H "Content-Type: application/json" \
 
 ---
 
-## ⚠️ Known Limitations & Improvements
+## 📊 Additional Datasets
 
-### The C1/C2 Problem
+These datasets aren't CEFR-specific but may be useful for related essay scoring or learner language research:
 
-The model tends to underpredict C1 and C2 levels because the W&I corpus has very few examples at these levels (~35 essays combined vs ~200 at B2). This is a common data imbalance issue.
+### DREsS (Dataset for Rubric-based Essay Scoring)
 
-### Ways to Improve the Model
+**[DREsS](https://haneul-yoo.github.io/dress/)** - Published at ACL 2025, this large-scale dataset focuses on rubric-based scoring for EFL writing:
+- **DREsS_New**: 2,279 essays from EFL learners scored by experts
+- **DREsS_Std**: 6,515 essays aggregated from existing datasets
+- **DREsS_CASE**: 40,185 synthetic essay samples
+- Scoring: 1-5 scale across three rubrics (content, organization, language)
 
-1. **Data augmentation**: Generate synthetic C1/C2 essays using GPT-4, or paraphrase existing ones
-2. **Class weighting**: Weight the loss function to penalize C1/C2 errors more heavily
-3. **[Ordinal regression](https://arxiv.org/abs/2111.08851)**: Use CORN or other ordinal loss functions that respect the A1→C2 ordering
-4. **[Larger model](https://huggingface.co/microsoft/deberta-v3-large)**: Try `microsoft/deberta-v3-large` (304M params vs 86M)
-5. **Ensemble**: Train 3-5 models with different seeds and average predictions
-6. **Additional data**: Combine with other CEFR-labeled corpora like [EFCAMDAT](https://philarion.mml.cam.ac.uk/) or [ASAP](https://www.kaggle.com/c/asap-aes)
+### ASAP (Automated Student Assessment Prize)
+
+**[ASAP AES](https://www.kaggle.com/c/asap-aes)** - The original Kaggle essay scoring competition dataset:
+- ~13,000 essays across 8 prompts from US high school students (grades 7-10)
+- Holistic scores with some trait-level annotations
+
+**[ASAP 2.0](https://www.kaggle.com/competitions/learning-agency-lab-automated-essay-scoring-2)** - Updated 2024 dataset:
+- ~24,000 argumentative essays
+- Scored 1-6 scale
+- Focus on demographic diversity to reduce algorithmic bias
+
+### ICNALE (International Corpus Network of Asian Learners of English)
+
+**[ICNALE](http://language.sakura.ne.jp/icnale/)** - Topic-controlled corpus from Asian learners:
+- 5,600+ essays (200-300 words each) from 10 Asian countries/regions
+- Includes proficiency levels mapped to CEFR via TOEIC/TOEFL/IELTS scores
+- **Edited Essays** module includes professional corrections and rubric-based scores
+- Open access with online query interface
+
+### EFCAMDAT (EF-Cambridge Open Language Database)
+
+**[EFCAMDAT](https://corpus.mml.cam.ac.uk/efcamdat2/)** - Large-scale learner corpus from EF Education First:
+- 83+ million words from 1 million assignments
+- 174,000 learners across CEFR levels A1-C2
+- Includes error annotations, POS tagging, and grammatical relationships
+- Requires free registration for access
+
+### Other Notable Resources
+
+- **[Kaggle ELL Feedback Prize](https://www.kaggle.com/competitions/feedback-prize-english-language-learning)** - Essays with trait-level scores
+- **[TOEFL11](https://catalog.ldc.upenn.edu/LDC2014T06)** - Essays with coarse proficiency labels (low/medium/high)
+
+
