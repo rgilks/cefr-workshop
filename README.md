@@ -581,3 +581,33 @@ These datasets aren't CEFR-specific but may be useful for related essay scoring 
 - **[TOEFL11](https://catalog.ldc.upenn.edu/LDC2014T06)** - Essays with coarse proficiency labels (low/medium/high)
 
 
+
+---
+
+## ⚠️ Known Limitations & Improvements
+
+### The C1/C2 Problem
+
+The model tends to underpredict C1 and C2 levels because the W&I corpus has very few examples at these levels (~35 essays combined vs ~200 at B2). This is a common data imbalance issue.
+
+### Ways to Improve the Model
+
+1. **Data augmentation**: Generate synthetic C1/C2 essays using GPT-4, or paraphrase existing ones
+2. **Class weighting**: Weight the loss function to penalize C1/C2 errors more heavily
+3. **[Ordinal regression](https://arxiv.org/abs/2111.08851)**: Use CORN or other ordinal loss functions that respect the A1→C2 ordering
+4. **[Larger model](https://huggingface.co/microsoft/deberta-v3-large)**: Try `microsoft/deberta-v3-large` (304M params vs 86M)
+5. **Ensemble**: Train 3-5 models with different seeds and average predictions
+6. **Additional data**: See the "Additional Datasets" section above.
+
+---
+
+## ⚖️ License & Compliance Warning
+
+This project uses the **Write & Improve Corpus 2024** from Cambridge University Press & Assessment. By using this data, you agree to their [Terms and Conditions](https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024).
+
+**IMPORTANT Restrictions:**
+1. **Non-Commercial**: You may not use this data or trained models for commercial products.
+2. **No Model Redistribution**: You are **strictly prohibited** from publishing models trained on this data (e.g., uploading `best_model.pt` to Hugging Face Hub).
+3. **Data Privacy**: Do not redistribute the raw dataset.
+
+This workshop is for educational purposes only.
