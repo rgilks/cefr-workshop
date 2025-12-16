@@ -95,8 +95,8 @@ def train(
             raise FileNotFoundError(
                 f"\n❌ Data file not found: {path}\n\n"
                 "To fix this, run:\n"
-                "  uv run python prepare_data.py --input-dir /path/to/corpus/whole-corpus\n\n"
-                "See README.md for details on obtaining the W&I corpus."
+                "  uv run python prepare_data.py\n\n"
+                "This will download and prepare the PELIC dataset."
             )
         with open(path) as f:
             return [json.loads(line) for line in f]

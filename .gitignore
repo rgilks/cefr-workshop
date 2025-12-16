@@ -27,3 +27,4 @@ env/
 
 # Jupyter
 .ipynb_checkpoints/
+pelic_raw/

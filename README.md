@@ -27,13 +27,6 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 brew install uv
 ```
 
-### Get the Training Data
-
-**Get the Write & Improve corpus** - this is the training data:
-1. Go to: https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024
-2. Fill out the request form (access is typically granted immediately)
-3. Download and unzip the corpus
-
 ### Setup
 
 #### 1. Clone and Install
@@ -56,16 +49,10 @@ uv run python model.py
 #### 3. Prepare the Training Data
 
 ```bash
-# Once you download and unzip the corpus from Cambridge:
-# https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024
-# 
-# The 2024 corpus extracts to a folder like: write-and-improve-corpus-2024-v2/
-# Point the script to the whole-corpus subdirectory:
-
-uv run python prepare_data.py \
-    --input-dir /path/to/write-and-improve-corpus-2024-v2/whole-corpus \
-    --output-dir ./data
+# Downloads and prepares the PELIC dataset (~38k essays)
+uv run python prepare_data.py
 ```
+
 
 #### 4. Set Up Modal (Cloud GPUs)
 ```bash
@@ -108,7 +95,7 @@ cefr-workshop/
 ├── evaluate.py               # Evaluation script
 ├── serve.py                  # API deployment
 ├── hello_modal.py            # Quick test for Modal setup
-├── prepare_data.py           # Converts W&I corpus to training format
+├── prepare_data.py           # Converts datasets to training format
 └── data/                     # Training data (created by prepare_data.py)
     ├── train.jsonl
     ├── dev.jsonl
@@ -120,7 +107,7 @@ cefr-workshop/
 ## 📚 Table of Contents
 
 1. [Understanding the Problem](#part-1-understanding-the-problem)
-2. [The Dataset: Write & Improve Corpus](#part-2-the-dataset)
+2. [The Dataset: PELIC](#part-2-the-dataset)
 3. [How DeBERTa Works (Conceptually)](#part-3-how-deberta-works)
 4. [Setting Up Modal](#part-4-setting-up-modal)
 5. [Building the Training Pipeline](#part-5-building-the-training-pipeline)
@@ -162,37 +149,25 @@ This is a **regression problem**:
 
 ## Part 2: The Dataset
 
-### Write & Improve Corpus
+### PELIC Dataset (Recommended)
 
-The [Write & Improve (W&I) corpus](https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024) is from Cambridge English:
+The **University of Pittsburgh English Language Institute Corpus (PELIC)** is our primary dataset for this workshop. It is an open dataset containing real essays from English learners.
 
-- **~2,500 essays** from real English learners (final versions with CEFR labels)
-- **Expert CEFR labels** by trained examiners
-- **Open access** for research
-- Pre-split into train/dev/test sets
+- **~38,000 essays** (after filtering)
+- **Levels A2-C1** (Note: Does not contain A1 or C2 examples)
+- **Open License**: CC BY-NC-ND 4.0
+- **Auto-download**: Our script handles everything.
 
 ### Obtaining the Data
 
 ```bash
-# 1. Request access from Cambridge
-# https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024
-# Fill out the form - usually approved within 24 hours
-
-# 2. Once you receive the download link, unzip it.
-# The 2024 version extracts to: write-and-improve-corpus-2024-v2/
+# Downloads and prepares the PELIC dataset
+uv run python prepare_data.py
 ```
 
 ### Data Structure
 
-The 2024 corpus is a single TSV file (`whole-corpus/en-writeandimprove2024-corpus.tsv`) with columns:
-
-| Column | Description |
-|--------|-------------|
-| `text` | The essay text |
-| `automarker_cefr_level` | CEFR level from auto-marker |
-| `humannotator_cefr_level` | CEFR level from human (if available) |
-| `split` | train / dev / test |
-| `is_final_version` | TRUE for final drafts |
+The PELIC dataset comes as a large CSV file. Our script filters it and converts it to JSONL format for training, mapping the internal levels (2-5) to CEFR (A2-C1).
 
 ### CEFR to Numeric Mapping
 
@@ -209,7 +184,7 @@ CEFR_TO_SCORE = {
 }
 ```
 
-> ⚠️ **Note**: The W&I corpus primarily contains B1-B2 essays (~75%). Very few A1 or C2 examples exist.
+> ⚠️ **Note on PELIC**: The PELIC dataset covers levels **A2 to C1**. It does not contain essays for A1 (Beginner) or C2 (Mastery). The model will still be able to predict adjacent scores, but may be less accurate at the extremes.
 
 ---
 
@@ -317,10 +292,10 @@ The project contains four main Python files. Here's what each does:
 
 ### `prepare_data.py` - Data Preparation
 
-Converts the W&I corpus TSV file into training format (JSONL):
-- Reads essays from the corpus
-- Uses the official train/dev/test splits
-- Converts CEFR levels (A1-C2) to numbers (1.0-6.0)
+Downloads and prepares the PELIC dataset for training:
+- Auto-clones from GitHub
+- Parses CSV and maps PELIC levels (2-5) to CEFR (A2-C1)
+- Splits into train/dev/test JSONL files
 
 **Key concept**: CEFR levels are converted to numbers for regression:
 ```python
@@ -501,7 +476,7 @@ curl -X POST https://YOUR-URL/score -H "Content-Type: application/json" \
 
 ### The C1/C2 Problem
 
-The model tends to underpredict C1 and C2 levels because the W&I corpus has very few examples at these levels (~35 essays combined vs ~200 at B2). This is a common data imbalance issue.
+The model tends to underpredict C1 and C2 levels. In PELIC, this is exacerbated by the lack of C2 training data. This is a common data imbalance issue.
 
 ### Ways to Improve the Model
 
@@ -527,7 +502,7 @@ The model tends to underpredict C1 and C2 levels because the W&I corpus has very
 - [Hugging Face Transformers](https://huggingface.co/docs/transformers) - Library docs
 - [Modal Documentation](https://modal.com/docs/guide) - Cloud platform
 - [DeBERTa Paper](https://arxiv.org/abs/2006.03654) - Original research
-- [W&I Corpus](https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024) - Dataset source
+- [PELIC Dataset](https://github.com/eli-data-mining-group/PELIC-dataset) - Source repository
 
 ### CEFR Background
 
@@ -579,35 +554,3 @@ These datasets aren't CEFR-specific but may be useful for related essay scoring 
 
 - **[Kaggle ELL Feedback Prize](https://www.kaggle.com/competitions/feedback-prize-english-language-learning)** - Essays with trait-level scores
 - **[TOEFL11](https://catalog.ldc.upenn.edu/LDC2014T06)** - Essays with coarse proficiency labels (low/medium/high)
-
-
-
----
-
-## ⚠️ Known Limitations & Improvements
-
-### The C1/C2 Problem
-
-The model tends to underpredict C1 and C2 levels because the W&I corpus has very few examples at these levels (~35 essays combined vs ~200 at B2). This is a common data imbalance issue.
-
-### Ways to Improve the Model
-
-1. **Data augmentation**: Generate synthetic C1/C2 essays using GPT-4, or paraphrase existing ones
-2. **Class weighting**: Weight the loss function to penalize C1/C2 errors more heavily
-3. **[Ordinal regression](https://arxiv.org/abs/2111.08851)**: Use CORN or other ordinal loss functions that respect the A1→C2 ordering
-4. **[Larger model](https://huggingface.co/microsoft/deberta-v3-large)**: Try `microsoft/deberta-v3-large` (304M params vs 86M)
-5. **Ensemble**: Train 3-5 models with different seeds and average predictions
-6. **Additional data**: See the "Additional Datasets" section above.
-
----
-
-## ⚖️ License & Compliance Warning
-
-This project uses the **Write & Improve Corpus 2024** from Cambridge University Press & Assessment. By using this data, you agree to their [Terms and Conditions](https://englishlanguageitutoring.com/datasets/write-and-improve-corpus-2024).
-
-**IMPORTANT Restrictions:**
-1. **Non-Commercial**: You may not use this data or trained models for commercial products.
-2. **No Model Redistribution**: You are **strictly prohibited** from publishing models trained on this data (e.g., uploading `best_model.pt` to Hugging Face Hub).
-3. **Data Privacy**: Do not redistribute the raw dataset.
-
-This workshop is for educational purposes only.
