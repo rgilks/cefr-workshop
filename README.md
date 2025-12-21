@@ -1,5 +1,7 @@
 # CEFR Scoring with DeBERTa-v3
 
+![CEFR Workshop Screenshot](screenshot.png)
+
 **Prerequisites**: Python basics, command line familiarity  
 **Target Audience**: Software engineers new to ML
 
