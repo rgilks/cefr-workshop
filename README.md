@@ -72,7 +72,7 @@ uv run python prepare_data.py \
 #### 4. Set Up Modal (Cloud GPUs)
 ```bash
 uv run modal setup              # Follow the prompts to authenticate
-uv run modal run hello_modal.py # Verify Modal works (prints "Hello from <hostname>!")
+uv run modal run hello_modal.py # Verify Modal works (prints "Hello from modal!")
 ```
 
 #### 5. Run Training
@@ -125,7 +125,7 @@ cefr-workshop/
 2. [The Dataset: Write & Improve Corpus](#part-2-the-dataset)
 3. [How DeBERTa Works (Conceptually)](#part-3-how-deberta-works)
 4. [Setting Up Modal](#part-4-setting-up-modal)
-5. [Building the Training Pipeline](#part-5-building-the-training-pipeline)
+5. [Understanding the Code](#part-5-understanding-the-code)
 6. [Training & Evaluation](#part-6-training--evaluation)
 7. [Deployment & Inference](#part-7-deployment--inference)
 8. [Additional Datasets](#-additional-datasets)
@@ -286,7 +286,7 @@ uv run modal run --help
 
 ### Your First Modal Script
 
-Create `hello_modal.py`:
+The repo includes `hello_modal.py` to verify your Modal setup:
 
 ```python
 import modal
@@ -314,7 +314,7 @@ uv run modal run hello_modal.py
 
 ## Part 5: Understanding the Code
 
-The project contains four main Python files. Here's what each does:
+The project contains five main Python files. Here's what each does:
 
 ### `prepare_data.py` - Data Preparation
 
@@ -350,6 +350,13 @@ Runs on Modal with a GPU:
 def train():
     # Training code here
 ```
+
+### `evaluate.py` - Model Evaluation
+
+Tests the trained model on held-out data:
+- Loads the best model from Modal volume
+- Runs batched inference on the test set
+- Reports MAE, QWK, exact accuracy, and per-level breakdown
 
 ### `serve.py` - API Deployment
 
@@ -429,19 +436,19 @@ Example output:
 ============================================================
 EVALUATION RESULTS
 ============================================================
-Samples:           280
+Samples:           262
 MAE:               0.421
 QWK:               0.812
 Exact Accuracy:    58.2%
 Adjacent Accuracy: 91.4%
 
 Per-Level MAE:
-  A1: 0.312 (n=8)
-  A2: 0.387 (n=42)
-  B1: 0.354 (n=115)
-  B2: 0.401 (n=89)
-  C1: 0.823 (n=18)
-  C2: 0.951 (n=8)
+  A1: 0.312 (n=6)
+  A2: 0.387 (n=35)
+  B1: 0.354 (n=105)
+  B2: 0.401 (n=92)
+  C1: 0.823 (n=17)
+  C2: 0.951 (n=7)
 ============================================================
 ```
 
@@ -541,7 +548,7 @@ The model tends to underpredict C1 and C2 levels because the W&I corpus has very
 1. **Data augmentation**: Generate synthetic C1/C2 essays using GPT-4, or paraphrase existing ones
 2. **Class weighting**: Weight the loss function to penalize C1/C2 errors more heavily
 3. **[Ordinal regression](https://arxiv.org/abs/2111.08851)**: Use CORN or other ordinal loss functions that respect the A1→C2 ordering
-4. **[Larger model](https://huggingface.co/microsoft/deberta-v3-large)**: Try `microsoft/deberta-v3-large` (304M params vs 86M)
+4. **[Larger model](https://huggingface.co/microsoft/deberta-v3-large)**: Try `microsoft/deberta-v3-large` (304M backbone params vs 86M for base)
 5. **Ensemble**: Train 3-5 models with different seeds and average predictions
 6. **Additional data**: Combine with other corpora - see [Additional Datasets](#-additional-datasets) below
 

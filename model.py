@@ -2,7 +2,7 @@
 CEFR scoring model based on DeBERTa-v3.
 
 Architecture:
-    DeBERTa-v3-base Encoder (86M params)
+    DeBERTa-v3-base Encoder (~184M params)
         ↓
     Mean Pooling (average all token representations)
         ↓

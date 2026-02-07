@@ -3,7 +3,7 @@ Serve CEFR model as a FastAPI endpoint on Modal.
 
 Usage:
     uv run modal deploy serve.py
-    # Then: curl https://your-app.modal.run/score -X POST -d '{"text": "..."}'
+    # Then: curl https://your-app.modal.run/score -X POST -H "Content-Type: application/json" -d '{"text": "..."}'
 """
 import modal
 from fastapi import FastAPI, HTTPException
