@@ -63,10 +63,10 @@ def parse_wi_corpus_2024(input_dir: Path) -> dict[str, list[dict]]:
                 continue
             
             # Get CEFR level (prefer human annotation, fallback to auto-marker)
-            cefr = row.get("humannotator_cefr_level", "").strip()
+            cefr = row.get("humannotator_cefr_level", "").strip().upper()
             if not cefr or cefr == "NA":
-                cefr = row.get("automarker_cefr_level", "").strip()
-            
+                cefr = row.get("automarker_cefr_level", "").strip().upper()
+
             if not cefr or cefr == "NA" or cefr not in CEFR_TO_SCORE:
                 skipped["no_cefr"] += 1
                 continue
@@ -85,8 +85,8 @@ def parse_wi_corpus_2024(input_dir: Path) -> dict[str, list[dict]]:
             essays[split].append({
                 "id": row.get("public_essay_id", ""),
                 "text": text,
-                "cefr": cefr.upper(),
-                "score": CEFR_TO_SCORE[cefr.upper()],
+                "cefr": cefr,
+                "score": CEFR_TO_SCORE[cefr],
             })
     
     print(f"\nSkipped essays:")

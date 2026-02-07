@@ -82,6 +82,13 @@ class CEFRModel(nn.Module):
         return score
 
 
+# CEFR level to numeric score mapping (single source of truth)
+CEFR_TO_SCORE = {
+    "A1": 1.0, "A2": 2.0, "B1": 3.0,
+    "B2": 4.0, "C1": 5.0, "C2": 6.0,
+}
+
+
 def score_to_cefr(score: float) -> str:
     """Convert numeric score to CEFR level."""
     if score < 1.5:

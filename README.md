@@ -40,7 +40,7 @@ brew install uv
 
 #### 1. Clone and Install
 ```bash
-git clone <this-repo>
+git clone https://github.com/rgilks/cefr-workshop.git
 cd cefr-workshop
 
 # Install all dependencies (uv handles Python version automatically)
@@ -71,17 +71,17 @@ uv run python prepare_data.py \
 
 #### 4. Set Up Modal (Cloud GPUs)
 ```bash
-modal setup              # Follow the prompts to authenticate
-modal run hello_modal.py # Verify Modal works (should print "Hello from modal!")
+uv run modal setup              # Follow the prompts to authenticate
+uv run modal run hello_modal.py # Verify Modal works (prints "Hello from <hostname>!")
 ```
 
 #### 5. Run Training
 ```bash
 # Quick test first (~5 min, verifies everything works)
-modal run train.py --test-run
+uv run modal run train.py --test-run
 
 # Then full training (~30-60 min on A10G GPU)
-modal run train.py
+uv run modal run train.py
 ```
 
 You're all set! Continue to [Part 1](#part-1-understanding-the-problem) to learn what you're building, or skip ahead to [Part 6](#part-6-training--evaluation) if you just want to train.
@@ -265,15 +265,14 @@ def train():
 
 ### Installation
 
+Modal is already included in the project dependencies (`pyproject.toml`). After running `uv sync`:
+
 ```bash
-# 1. Install Modal
-pip install modal
+# 1. Authenticate (creates ~/.modal.toml)
+uv run modal setup
 
-# 2. Authenticate (creates ~/.modal.toml)
-modal setup
-
-# 3. Verify
-modal run --help
+# 2. Verify
+uv run modal run --help
 ```
 
 ### Modal Concepts
@@ -306,8 +305,8 @@ def main():
 
 Run it:
 ```bash
-modal run hello_modal.py
-# Output: Hello from modal-runner-xxx!
+uv run modal run hello_modal.py
+# Output: Hello from <modal-hostname>!
 ```
 
 ---
@@ -367,11 +366,13 @@ Deploys the trained model as a REST API:
 
 ```bash
 # Quick test (verifies everything works, ~5 min)
-modal run train.py --test-run
+uv run modal run train.py --test-run
 
 # Full training (~30-60 min)
-modal run train.py
+uv run modal run train.py
 ```
+
+> **How `--test-run` works**: Modal forwards CLI arguments to the `@app.local_entrypoint()` function. The `test_run: bool = False` parameter is automatically converted from the `--test-run` flag. This is a standard Modal feature for parameterizing remote functions.
 
 ### Understanding the Output
 
@@ -415,13 +416,36 @@ An MAE of 0.4 means predictions are within half a CEFR level on average.
 After training, test your model on held-out data:
 
 ```bash
-modal run evaluate.py
+uv run modal run evaluate.py
 ```
 
 The `evaluate.py` script:
 - Loads your trained model from Modal volume
 - Runs predictions on all test essays
 - Reports MAE, QWK, and accuracy metrics
+
+Example output:
+```
+============================================================
+EVALUATION RESULTS
+============================================================
+Samples:           280
+MAE:               0.421
+QWK:               0.812
+Exact Accuracy:    58.2%
+Adjacent Accuracy: 91.4%
+
+Per-Level MAE:
+  A1: 0.312 (n=8)
+  A2: 0.387 (n=42)
+  B1: 0.354 (n=115)
+  B2: 0.401 (n=89)
+  C1: 0.823 (n=18)
+  C2: 0.951 (n=8)
+============================================================
+```
+
+> Note: Your results will vary. C1/C2 levels typically have higher error due to limited training data.
 
 ### Understanding QWK (Quadratic Weighted Kappa)
 
@@ -446,7 +470,7 @@ QWK measures agreement between predicted and actual CEFR levels:
 The `serve.py` file deploys your trained model as a REST API:
 
 ```bash
-modal deploy serve.py
+uv run modal deploy serve.py
 ```
 
 This gives you a persistent URL like `https://your-username--cefr-api-cefrservice-serve.modal.run`
@@ -457,6 +481,13 @@ This gives you a persistent URL like `https://your-username--cefr-api-cefrservic
 |----------|--------|-------------|
 | `/health` | GET | Check if model is loaded |
 | `/score` | POST | Score an essay |
+
+### Understanding the Response
+
+The `/score` endpoint returns three fields:
+- **`score`**: Numeric prediction on the 1.0-6.0 scale
+- **`cefr_level`**: The CEFR level derived from the score (A1-C2)
+- **`confidence`**: A heuristic based on how far the score is from the nearest CEFR boundary. Scores near boundaries (e.g., 2.48, right between A2 and B1) get `"low"` confidence, while scores firmly within a level (e.g., 3.1, clearly B1) get `"high"`. This is **not** a model calibration metric — it simply flags borderline cases.
 
 ### Testing the API
 
@@ -581,25 +612,6 @@ These datasets aren't CEFR-specific but may be useful for related essay scoring 
 
 - **[Kaggle ELL Feedback Prize](https://www.kaggle.com/competitions/feedback-prize-english-language-learning)** - Essays with trait-level scores
 - **[TOEFL11](https://catalog.ldc.upenn.edu/LDC2014T06)** - Essays with coarse proficiency labels (low/medium/high)
-
-
-
----
-
-## ⚠️ Known Limitations & Improvements
-
-### The C1/C2 Problem
-
-The model tends to underpredict C1 and C2 levels because the W&I corpus has very few examples at these levels (~35 essays combined vs ~200 at B2). This is a common data imbalance issue.
-
-### Ways to Improve the Model
-
-1. **Data augmentation**: Generate synthetic C1/C2 essays using GPT-4, or paraphrase existing ones
-2. **Class weighting**: Weight the loss function to penalize C1/C2 errors more heavily
-3. **[Ordinal regression](https://arxiv.org/abs/2111.08851)**: Use CORN or other ordinal loss functions that respect the A1→C2 ordering
-4. **[Larger model](https://huggingface.co/microsoft/deberta-v3-large)**: Try `microsoft/deberta-v3-large` (304M params vs 86M)
-5. **Ensemble**: Train 3-5 models with different seeds and average predictions
-6. **Additional data**: See the "Additional Datasets" section above.
 
 ---
 

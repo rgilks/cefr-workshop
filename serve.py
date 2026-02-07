@@ -2,7 +2,7 @@
 Serve CEFR model as a FastAPI endpoint on Modal.
 
 Usage:
-    modal deploy serve.py
+    uv run modal deploy serve.py
     # Then: curl https://your-app.modal.run/score -X POST -d '{"text": "..."}'
 """
 import modal
@@ -12,7 +12,7 @@ from pydantic import BaseModel
 app = modal.App("cefr-api")
 
 image = (
-    modal.Image.debian_slim(python_version="3.11")
+    modal.Image.debian_slim(python_version="3.12")
     .pip_install(
         "torch>=2.1.0",
         "transformers>=4.40.0",
@@ -46,11 +46,12 @@ class ScoreResponse(BaseModel):
 )
 class CEFRService:
     """CEFR scoring service with model lifecycle management."""
-    
+
     def __init__(self):
         self.model = None
         self.tokenizer = None
-    
+        self.device = None
+
     @modal.enter()
     def startup(self):
         """Load model on container startup."""
@@ -59,23 +60,28 @@ class CEFRService:
         import sys
         sys.path.insert(0, "/app")
         from model import CEFRModel
-        
-        print("Loading model...")
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        print(f"Loading model on {self.device}...")
         self.model = CEFRModel()
-        self.model.load_state_dict(torch.load("/vol/best_model.pt", map_location="cpu"))
+        self.model.load_state_dict(
+            torch.load("/vol/best_model.pt", map_location=self.device, weights_only=True)
+        )
+        self.model = self.model.to(self.device)
         self.model.eval()
-        
+
         self.tokenizer = AutoTokenizer.from_pretrained("/vol/tokenizer")
         print("Model loaded!")
-    
+
     @modal.asgi_app()
     def serve(self):
         """Return the FastAPI app."""
-        
+
         @web_app.get("/health")
         def health():
             return {"status": "healthy", "model_loaded": self.model is not None}
-        
+
         @web_app.post("/score", response_model=ScoreResponse)
         def score_essay(request: ScoreRequest):
             """Score an essay and return CEFR level."""
@@ -83,13 +89,13 @@ class CEFRService:
             import sys
             sys.path.insert(0, "/app")
             from model import score_to_cefr
-            
+
             if self.model is None:
                 raise HTTPException(500, "Model not loaded")
-            
+
             if len(request.text.strip()) < 10:
                 raise HTTPException(400, "Text too short (min 10 characters)")
-            
+
             # Tokenize
             encoding = self.tokenizer(
                 request.text,
@@ -98,27 +104,29 @@ class CEFRService:
                 max_length=512,
                 return_tensors="pt",
             )
-            
+
+            # Move inputs to same device as model
+            input_ids = encoding["input_ids"].to(self.device)
+            attention_mask = encoding["attention_mask"].to(self.device)
+
             # Predict
             with torch.no_grad():
-                score = self.model(
-                    encoding["input_ids"],
-                    encoding["attention_mask"],
-                ).item()
-            
+                score = self.model(input_ids, attention_mask).item()
+
             # Clamp to valid range
             score = max(1.0, min(6.0, score))
             cefr = score_to_cefr(score)
-            
-            # Simple confidence based on distance to CEFR boundaries
+
+            # Confidence heuristic based on distance to nearest CEFR boundary.
+            # Scores near boundaries (e.g., 2.48 between A2/B1) are less certain.
             boundaries = {1.5, 2.5, 3.5, 4.5, 5.5}
             min_dist = min(abs(score - b) for b in boundaries)
             confidence = "high" if min_dist > 0.3 else "medium" if min_dist > 0.15 else "low"
-            
+
             return ScoreResponse(
                 score=round(score, 2),
                 cefr_level=cefr,
                 confidence=confidence,
             )
-        
+
         return web_app
