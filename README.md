@@ -437,22 +437,21 @@ Example output:
 EVALUATION RESULTS
 ============================================================
 Samples:           262
-MAE:               0.421
-QWK:               0.812
-Exact Accuracy:    58.2%
-Adjacent Accuracy: 91.4%
+MAE:               0.375
+QWK:               0.776
+Exact Accuracy:    71.8%
+Adjacent Accuracy: 99.6%
 
 Per-Level MAE:
-  A1: 0.312 (n=6)
-  A2: 0.387 (n=35)
-  B1: 0.354 (n=105)
-  B2: 0.401 (n=92)
-  C1: 0.823 (n=17)
-  C2: 0.951 (n=7)
+  A2: 0.856 (n=20)
+  B1: 0.391 (n=81)
+  B2: 0.252 (n=126)
+  C1: 0.264 (n=24)
+  C2: 1.024 (n=11)
 ============================================================
 ```
 
-> Note: Your results will vary. C1/C2 levels typically have higher error due to limited training data.
+> Note: Your results may vary slightly. A1 has no test samples. A2/C2 have higher error due to limited training data.
 
 ### Understanding QWK (Quadratic Weighted Kappa)
 
