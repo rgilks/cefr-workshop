@@ -44,7 +44,7 @@ def evaluate():
 
     # Load model
     print("Loading model...")
-    model = CEFRModel()
+    model = CEFRModel().float()
     model.load_state_dict(
         torch.load("/vol/best_model.pt", map_location=device, weights_only=True)
     )

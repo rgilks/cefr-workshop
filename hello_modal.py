@@ -5,7 +5,7 @@ Usage:
     uv run modal run hello_modal.py
 
 Expected output:
-    Hello from <modal-hostname>!
+    Hello from modal!
 """
 import modal
 

@@ -306,7 +306,7 @@ def main():
 Run it:
 ```bash
 uv run modal run hello_modal.py
-# Output: Hello from <modal-hostname>!
+# Output: Hello from modal!
 ```
 
 ---

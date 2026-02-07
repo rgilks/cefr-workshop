@@ -64,7 +64,7 @@ class CEFRService:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         print(f"Loading model on {self.device}...")
-        self.model = CEFRModel()
+        self.model = CEFRModel().float()
         self.model.load_state_dict(
             torch.load("/vol/best_model.pt", map_location=self.device, weights_only=True)
         )

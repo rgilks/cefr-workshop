@@ -167,7 +167,9 @@ def train(
     # Model Setup
     # --------------------------------------------------------
 
-    model = CEFRModel().to(device)
+    # .float() ensures all params are FP32 — DeBERTa-v3 stores some internal
+    # weights in FP16, which can cause NaN during forward passes without this.
+    model = CEFRModel().float().to(device)
 
     # Count parameters
     total_params = sum(p.numel() for p in model.parameters())
@@ -195,9 +197,6 @@ def train(
     # Loss function: Mean Squared Error
     loss_fn = torch.nn.MSELoss()
 
-    # Mixed precision: uses float16 on GPU for ~2x speedup with minimal quality loss
-    scaler = torch.amp.GradScaler("cuda")
-
     # --------------------------------------------------------
     # Training Loop
     # --------------------------------------------------------
@@ -216,22 +215,19 @@ def train(
             attention_mask = batch["attention_mask"].to(device)
             labels = batch["labels"].to(device)
 
-            # Forward pass with mixed precision
-            with torch.amp.autocast("cuda"):
-                predictions = model(input_ids, attention_mask)
-                loss = loss_fn(predictions, labels)
+            # Forward pass
+            predictions = model(input_ids, attention_mask)
+            loss = loss_fn(predictions, labels)
 
-            # Backward pass (scaled for mixed precision)
+            # Backward pass
             optimizer.zero_grad()
-            scaler.scale(loss).backward()
+            loss.backward()
 
             # Gradient clipping (prevents exploding gradients)
-            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
             # Update weights
-            scaler.step(optimizer)
-            scaler.update()
+            optimizer.step()
             scheduler.step()
 
             train_loss += loss.item()
